@@ -21,7 +21,7 @@ baseimage=${1:-''}
 
 # This name will be used to define the temporary VM for provisioning,
 # as well as serve as the name of the finished vagrant box.
-name=${2:-""}
+name=${2:-"vagrantvbox"}
 
 # This password will be used as the password for the root and vagrant
 # users
@@ -29,14 +29,14 @@ password=${password:-"vagrant"}
 
 # This is the libvirt storage domain path.  if you want to use the
 # default, change this value to "/var/lib/libvirt/images/"
-storagedir=${storagedir:-"$HOME/vagrant/.images"}
+storagedir=${storagedir:-"$HOME/vagrant/.images/"}
 
 # vagrant "insecure" key, available on the net
 vagrantsshid=${vagrantsshid:-"AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"}
 
 # Image size in GB.  The initial qcow will be resized, and the
 # meta-data will use this
-size_in_gb=${size_in_gb:-10}
+size_in_gb=${size_in_gb:-30}
 
 # Used for chown
 userid=${userid:-$(id -un)}
@@ -118,8 +118,8 @@ users:
   - name: root
     lock-passwd: false
 runcmd:
-  - for SERVICES in sshd; do systemctl enable \$SERVICES; done
-  - for SERVICES in cloud-init cloud-config cloud-final cloud-init-local; do systemctl disable \$SERVICES; done
+  - for SERVICES in sshd; do chkconfig \$SERVICES on; done
+  - for SERVICES in cloud-init cloud-config cloud-final cloud-init-local; do chkconfig \$SERVICES off; done
   - sed -i -e 's/\(.*requiretty$\)/#\1/' /etc/sudoers
   - sed -i -e 's/\(.*visiblepw$\)/#\1/' /etc/sudoers
 power_state:
@@ -129,7 +129,7 @@ EOF
 
 cat user-data
 
-mkisofs -output ${name}-cidata.iso -volid cidata -joliet -rock user-data meta-data network-config
+mkisofs -o ${name}-cidata.iso -V cidata -J -rock user-data meta-data network-config
 
 sudo virsh destroy ${name} || true
 sudo virsh undefine ${name} --remove-all-storage || true
